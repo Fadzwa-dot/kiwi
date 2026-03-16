@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from pydantic import ValidationError
 
 import app.service.transaction_service as transaction_service
 import app.service.user_service as user_service

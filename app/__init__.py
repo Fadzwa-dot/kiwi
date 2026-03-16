@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from werkzeug.exceptions import HTTPException
 from pydantic import ValidationError
 
 from app.db import db
@@ -29,9 +30,21 @@ def create_app(config):
         app.register_blueprint(security_bp, url_prefix='/securities')
         app.register_blueprint(trade_bp, url_prefix='/trades')
 
+        @app.get('/')
+        def index():
+            return jsonify({
+                'message': 'Kiwi API is running',
+                'endpoints': ['/users', '/portfolios', '/securities', '/trades'],
+            }), 200
+
         # Centralized error handler for generic exceptions
         @app.errorhandler(Exception)
         def handle_exception(e):
+            if isinstance(e, HTTPException):
+                return jsonify({
+                    'error': e.name,
+                    'detail': e.description,
+                }), e.code
             return jsonify({
                 "error": "Internal Server Error",
                 "detail": str(e)

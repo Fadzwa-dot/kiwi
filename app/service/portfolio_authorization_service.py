@@ -34,6 +34,17 @@ class PortfolioAuthorizationService:
         return False
 
     @staticmethod
-    def is_owner(portfolio_id, user_id):
+    def is_owner(portfolio_id, user_id_or_username):
         portfolio = Portfolio.query.filter_by(id=portfolio_id).first()
-        return portfolio and portfolio.user_id == user_id
+        if not portfolio:
+            return False
+        # Accept both user_id (int) and username (str)
+        # Try to resolve user_id to username if needed
+        if isinstance(user_id_or_username, int):
+            user = User.query.filter_by(id=user_id_or_username).first()
+            if not user:
+                return False
+            return portfolio.owner == user.username
+        elif isinstance(user_id_or_username, str):
+            return portfolio.owner == user_id_or_username
+        return False

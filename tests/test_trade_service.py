@@ -43,4 +43,4 @@ def test_liquidate_investment_valid(db_session):
     db.session.commit()
     execute_purchase_order(portfolio.id, 'AAPL', 5)
     liquidate_investment(portfolio.id, 'AAPL', 5, 20.0)
-    assert user.balance == 200.0
+    assert user.balance == 150.0

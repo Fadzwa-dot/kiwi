@@ -4,6 +4,18 @@ from app.db import db
 from app.models import Security, User
 from app.config import TestConfig
 
+@pytest.fixture(autouse=True, scope='function')
+def clean_database(app):
+    # Drop and recreate all tables before each test for isolation
+    db.drop_all()
+    db.create_all()
+    yield
+import pytest
+from app import create_app
+from app.db import db
+from app.models import Security, User
+from app.config import TestConfig
+
 @pytest.fixture(scope='session')
 def app():
     app = create_app(TestConfig)
@@ -19,12 +31,17 @@ def client(app):
 @pytest.fixture(scope='function')
 def db_session(app):
     with app.app_context():
-        db.session.begin(subtransactions=True)
+        db.session.begin()
         _populate_database(db.session)
         yield db.session
         db.session.rollback()
 
 def _populate_database(session):
+    # Clear tables to avoid UNIQUE constraint errors
+    session.query(Security).delete()
+    session.query(User).delete()
+    session.commit()
+
     admin_user = User(username='admin', password='admin', firstname='Admin', lastname='User', balance=1000.00)
     session.add(admin_user)
     securities = [

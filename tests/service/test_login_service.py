@@ -1,3 +1,7 @@
+def setup_function(function):
+    # Reset session state before each test
+    from app.cli.session_state import clear_logged_in_user
+    clear_logged_in_user()
 import pytest
 from app.models import User
 from app.service.login_service import login, logout, LoginError

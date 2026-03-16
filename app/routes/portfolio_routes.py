@@ -1,6 +1,7 @@
 from app.service.portfolio_authorization_service import PortfolioAuthorizationService, ROLE_VIEWER, ROLE_MANAGER
 from app.auth.auth import require_auth
 from flask import Blueprint, jsonify, request
+from pydantic import ValidationError
 
 import app.service.portfolio_service as portfolio_service
 import app.service.transaction_service as transaction_service
