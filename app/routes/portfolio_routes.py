@@ -1,6 +1,6 @@
 from app.service.portfolio_authorization_service import PortfolioAuthorizationService, ROLE_VIEWER, ROLE_MANAGER
 from app.auth.auth import require_auth
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 from pydantic import ValidationError
 
 import app.service.portfolio_service as portfolio_service
@@ -57,7 +57,7 @@ def create_portfolio():
 @portfolio_bp.route('/<int:portfolio_id>', methods=['DELETE'])
 @require_auth
 def delete_portfolio(portfolio_id):
-    user_id = getattr(request, 'user_id', None) or getattr(request, 'user', {}).get('sub', None) or getattr(request, 'user', {}).get('id', None)
+    user_id = g.user.get('sub')
     if not PortfolioAuthorizationService.is_owner(portfolio_id, user_id):
         return jsonify({'error': 'Forbidden', 'detail': 'Only portfolio owner can delete'}), 403
     portfolio_service.delete_portfolio(portfolio_id)

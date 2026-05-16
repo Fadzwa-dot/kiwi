@@ -89,13 +89,17 @@ def test_security_routes_happy_and_not_found(client, monkeypatch):
 def test_trade_routes_buy_and_sell(client, monkeypatch):
     monkeypatch.setattr(trade_routes.trade_service, 'execute_purchase_order', lambda **kwargs: None)
     monkeypatch.setattr(trade_routes.trade_service, 'liquidate_investment', lambda **kwargs: None)
+    monkeypatch.setattr(trade_routes.PortfolioAuthorizationService, 'is_owner', lambda portfolio_id, user_id: True)
+    monkeypatch.setattr(trade_routes.PortfolioAuthorizationService, 'has_access', lambda portfolio_id, user_id, role: False)
     monkeypatch.setattr(trade_routes.db.session, 'commit', lambda: None)
 
-    buy_resp = client.post('/trades/buy', json={'portfolio_id': 1, 'ticker': 'AAPL', 'quantity': 2})
+    headers = {'Authorization': 'Bearer token'}
+    buy_resp = client.post('/trades/buy', headers=headers, json={'portfolio_id': 1, 'ticker': 'AAPL', 'quantity': 2})
     assert buy_resp.status_code == 201
 
     sell_resp = client.post(
         '/trades/sell',
+        headers=headers,
         json={'portfolio_id': 1, 'ticker': 'AAPL', 'quantity': 1, 'sale_price': 150.0},
     )
     assert sell_resp.status_code == 200

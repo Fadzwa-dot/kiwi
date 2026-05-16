@@ -2,6 +2,7 @@ import datetime
 
 from app.db import db
 from app.models import Investment, Portfolio, Security, Transaction
+from app.services.alpha_vantage_client import AlphaVantageClient
 
 
 class TradeExecutionException(Exception):
@@ -36,10 +37,19 @@ def execute_purchase_order(portfolio_id: int, ticker: str, quantity: int):
     if not user:
         raise TradeExecutionException(f'User associated with the portfolio ({portfolio_id}) does not exist.')
 
+    quote = AlphaVantageClient.get_quote(ticker)
+    if not quote:
+        raise TradeExecutionException(f'Could not retrieve live quote for ticker {ticker}.')
+
     security = db.session.query(Security).filter_by(ticker=ticker).one_or_none()
     if not security:
-        raise TradeExecutionException(f'Security with ticker {ticker} does not exist.')
-    total_cost = security.price * quantity
+        security = Security(ticker=ticker, issuer=quote.issuer, price=quote.price)
+        db.session.add(security)
+    else:
+        security.issuer = quote.issuer
+        security.price = quote.price
+
+    total_cost = quote.price * quantity
     if user.balance < total_cost:
         raise InsufficientFundsError('Insufficient funds to complete the purchase.')
 
@@ -56,7 +66,7 @@ def execute_purchase_order(portfolio_id: int, ticker: str, quantity: int):
             username=user.username,
             ticker=ticker,
             quantity=quantity,
-            price=security.price,
+            price=quote.price,
             transaction_type='BUY',
             date_time=datetime.datetime.now(),
         )

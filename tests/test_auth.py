@@ -1,10 +1,8 @@
-
 import pytest
-from flask import g
+import jwt
+from datetime import datetime, timedelta, timezone
 from app.auth.auth import require_auth
 from unittest.mock import patch
-
-import flask
 
 @pytest.fixture(scope="module", autouse=True)
 def register_protected_route(app):
@@ -24,4 +22,60 @@ def test_protected_route_auth(client, header, expected_status):
         response = client.get('/protected', headers={"Authorization": header} if header else {})
         assert response.status_code == expected_status
 
-# Additional tests for valid token, expired token, etc. can be added with proper JWT mocking
+
+def test_protected_route_auth_valid_token(client, monkeypatch):
+    secret = 'unit-test-secret'
+    token = jwt.encode(
+        {
+            'sub': 'auth-user',
+            'exp': datetime.now(timezone.utc) + timedelta(minutes=5),
+        },
+        secret,
+        algorithm='HS256',
+    )
+
+    def verify_with_shared_secret(encoded_token):
+        return jwt.decode(encoded_token, secret, algorithms=['HS256'])
+
+    monkeypatch.setattr('app.auth.auth.verify_jwt', verify_with_shared_secret)
+    response = client.get('/protected', headers={'Authorization': f'Bearer {token}'})
+    assert response.status_code == 200
+
+
+def test_protected_route_auth_expired_token(client, monkeypatch):
+    secret = 'unit-test-secret'
+    token = jwt.encode(
+        {
+            'sub': 'auth-user',
+            'exp': datetime.now(timezone.utc) - timedelta(minutes=1),
+        },
+        secret,
+        algorithm='HS256',
+    )
+
+    def verify_with_shared_secret(encoded_token):
+        return jwt.decode(encoded_token, secret, algorithms=['HS256'])
+
+    monkeypatch.setattr('app.auth.auth.verify_jwt', verify_with_shared_secret)
+    response = client.get('/protected', headers={'Authorization': f'Bearer {token}'})
+    assert response.status_code == 403
+
+
+def test_protected_route_auth_invalid_signature_token(client, monkeypatch):
+    signing_secret = 'good-secret'
+    verification_secret = 'different-secret'
+    token = jwt.encode(
+        {
+            'sub': 'auth-user',
+            'exp': datetime.now(timezone.utc) + timedelta(minutes=5),
+        },
+        signing_secret,
+        algorithm='HS256',
+    )
+
+    def verify_with_wrong_secret(encoded_token):
+        return jwt.decode(encoded_token, verification_secret, algorithms=['HS256'])
+
+    monkeypatch.setattr('app.auth.auth.verify_jwt', verify_with_wrong_secret)
+    response = client.get('/protected', headers={'Authorization': f'Bearer {token}'})
+    assert response.status_code == 403

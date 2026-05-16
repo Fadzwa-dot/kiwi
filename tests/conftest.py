@@ -4,17 +4,13 @@ from app.db import db
 from app.models import Security, User
 from app.config import TestConfig
 
+
 @pytest.fixture(autouse=True, scope='function')
 def clean_database(app):
     # Drop and recreate all tables before each test for isolation
     db.drop_all()
     db.create_all()
     yield
-import pytest
-from app import create_app
-from app.db import db
-from app.models import Security, User
-from app.config import TestConfig
 
 @pytest.fixture(scope='session')
 def app():

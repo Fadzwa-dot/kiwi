@@ -1,22 +1,3 @@
-from app.models import Investment, Security
-def liquidate_investment(portfolio_id: int, ticker: str, quantity: int, price: float):
-    portfolio = db.session.query(Portfolio).filter_by(id=portfolio_id).one_or_none()
-    if not portfolio:
-        raise UnsupportedPortfolioOperationError(f"Portfolio with id {portfolio_id} does not exist")
-    investment = next((inv for inv in portfolio.investments if inv.ticker == ticker), None)
-    if not investment:
-        raise UnsupportedPortfolioOperationError(f"Investment with ticker {ticker} does not exist in portfolio {portfolio_id}")
-    if investment.quantity < quantity:
-        raise UnsupportedPortfolioOperationError(
-            f"Cannot liquidate {quantity} shares of {ticker}. Only {investment.quantity} shares available in portfolio"
-        )
-    investment.quantity -= quantity
-    user = portfolio.user
-    user.balance += quantity * price
-    if investment.quantity == 0:
-        db.session.delete(investment)
-    db.session.flush()
-    db.session.expire_all()
 from typing import List
 
 from app.db import db
